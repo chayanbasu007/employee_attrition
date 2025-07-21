@@ -7,37 +7,12 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Top Navigation
+# Ensure tables and charts fit the screen correctly
 st.set_page_config(page_title="Employee Attrition Dashboard", layout="wide")
 st.title("Employee Attrition Analysis")
 
 # Tabs for navigation
 tabs = st.tabs(["Homepage", "Data Analysis"])
-
-# Remove the download button in the sidebar
-# with st.sidebar:
-#     csv = df.to_csv(index=False).encode('utf-8')
-#     st.download_button(
-#         label="📥 Download Data",
-#         data=csv,
-#         file_name='employee_data.csv',
-#         mime='text/csv',
-#     )
-
-# Add logic to hide the CSV upload section and success message after a file is uploaded
-uploaded_file = st.file_uploader("Upload a CSV file", type="csv")
-
-# Add logic to retain the uploaded data in session state
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.success("File uploaded successfully!")
-
-    # Store the dataframe in session state
-    st.session_state['df'] = df
-    st.session_state['file_uploaded'] = True
-
-if 'file_uploaded' in st.session_state and st.session_state['file_uploaded']:
-    df = st.session_state['df']  # Retrieve the dataframe from session state
-    st.empty()  # Clear the file uploader and success message section
 
 # Apply mappings to categorical variables
 satisfaction_map = {1: 'Low', 2: 'Medium', 3: 'High', 4: 'Very High'}
@@ -46,6 +21,11 @@ job_level_map = {1: "Entry Level", 2: "Junior Level", 3: "Mid Level", 4: "Senior
 wlb_map = {1: "Poor", 2: "Average", 3: "Good", 4: "Excellent"}
 department_map = {'Research & Development': 'R&D', 'Sales': 'Sales', 'Human Resources': 'HR'}
 
+# Assuming the dataframe 'df' is preloaded or hardcoded
+# Replace this with the actual data loading logic if needed
+df = pd.read_csv('employee.csv')  # Example of loading a CSV file directly
+
+# Apply mappings to the dataframe
 df['EnvironmentSatisfaction'] = df['EnvironmentSatisfaction'].map(satisfaction_map)
 df['JobSatisfaction'] = df['JobSatisfaction'].map(satisfaction_map)
 df['RelationshipSatisfaction'] = df['RelationshipSatisfaction'].map(satisfaction_map)
@@ -132,7 +112,7 @@ with tabs[0]:
     if selected_continuous_col:
         st.write(f"Descriptive Statistics for {selected_continuous_col}")
         descriptive_stats = df[selected_continuous_col].describe().to_frame().T
-        st.dataframe(descriptive_stats.style.hide(axis='index'))
+        st.dataframe(descriptive_stats.style.hide(axis='index'), use_container_width=True)
 
 # Data Analysis
 with tabs[1]:
@@ -156,7 +136,8 @@ with tabs[1]:
     fig.update_layout(
         height=500,
         margin=dict(t=50, b=50, l=50, r=50),
-        font=dict(size=14)  # Ensure labels are clearly visible
+        font=dict(size=14),  # Ensure labels are clearly visible
+        autosize=True,  # Enable responsive resizing
     )
     st.plotly_chart(fig, use_container_width=True)
 
