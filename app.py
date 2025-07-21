@@ -459,94 +459,66 @@ with tabs[1]:
     # Display the barplot
     st.plotly_chart(fig, use_container_width=True)
 
-    # Normality Test
-    st.subheader("Normality Test")
+    # Normality Test and Group Difference Testing side by side
+    st.subheader("Statistical Tests")
+    col1, col2 = st.columns(2)
 
-    # Dropdown to select the type of normality test
-    test_type = st.selectbox(
-        "Select the type of Normality Test:",
-        options=["Shapiro-Wilk Test", "Kolmogorov-Smirnov Test", "Jarque-Bera Test"],
-        key="normality_test"
-    )
+    with col1:
+        st.subheader("Normality Test")
+        test_type = st.selectbox(
+            "Select the type of Normality Test:",
+            options=["Shapiro-Wilk Test", "Kolmogorov-Smirnov Test", "Jarque-Bera Test"],
+            key="normality_test"
+        )
 
-    if test_type:
-        from scipy.stats import shapiro, kstest, jarque_bera
+        if test_type:
+            from scipy.stats import shapiro, kstest, jarque_bera
 
-        # Initialize results list
-        results = []
+            results = []
+            for col in continuous_cols:
+                if test_type == "Shapiro-Wilk Test":
+                    stat, pvalue = shapiro(df[col])
+                elif test_type == "Kolmogorov-Smirnov Test":
+                    stat, pvalue = kstest(df[col], 'norm', args=(df[col].mean(), df[col].std()))
+                elif test_type == "Jarque-Bera Test":
+                    stat, pvalue = jarque_bera(df[col])
 
-        # Perform the selected test on each continuous column
-        for col in continuous_cols:
-            if test_type == "Shapiro-Wilk Test":
-                stat, pvalue = shapiro(df[col])
-            elif test_type == "Kolmogorov-Smirnov Test":
-                stat, pvalue = kstest(df[col], 'norm', args=(df[col].mean(), df[col].std()))
-            elif test_type == "Jarque-Bera Test":
-                stat, pvalue = jarque_bera(df[col])
+                normality = "Normal" if pvalue > 0.05 else "Not Normal"
+                results.append({"Column": col, "Test Statistic": round(stat, 4), "P-Value": round(pvalue, 4), "Normality": normality})
 
-            # Determine normality based on p-value
-            normality = "Normal" if pvalue > 0.05 else "Not Normal"
+            results_df = pd.DataFrame(results)
+            st.write("Results of the Normality Test:")
+            st.dataframe(results_df.style.hide(axis='index'), use_container_width=True)
 
-            # Append results
-            results.append({
-                "Column": col,
-                "Test Statistic": round(stat,4),
-                "P-Value": round(pvalue,4),
-                "Normality": normality
-            })
+    with col2:
+        st.subheader("Group Difference Testing")
+        group_test_type = st.selectbox(
+            "Select the type of Group Difference Test:",
+            options=["KS Test", "Brunner-Munzel Test", "Mann Whitney U Test"],
+            key="group_difference_test"
+        )
 
-        # Convert results to a DataFrame
-        results_df = pd.DataFrame(results)
+        if group_test_type:
+            from scipy.stats import ks_2samp, brunnermunzel, mannwhitneyu
 
-        # Display the results as a table
-        st.write("Results of the Normality Test:")
-        st.dataframe(results_df.style.hide(axis='index'))
+            group_results = []
+            for col in continuous_cols:
+                attrition_yes = df[df['Attrition'] == 'Yes'][col]
+                attrition_no = df[df['Attrition'] == 'No'][col]
 
-    # Group Difference Testing
-    st.subheader("Group Difference Testing")
+                if group_test_type == "KS Test":
+                    stat, pvalue = ks_2samp(attrition_yes, attrition_no)
+                elif group_test_type == "Brunner-Munzel Test":
+                    stat, pvalue = brunnermunzel(attrition_yes, attrition_no)
+                elif group_test_type == "Mann Whitney U Test":
+                    stat, pvalue = mannwhitneyu(attrition_yes, attrition_no, alternative='two-sided')
 
-    # Dropdown to select the type of group difference test
-    group_test_type = st.selectbox(
-        "Select the type of Group Difference Test:",
-        options=["KS Test", "Brunner-Munzel Test", "Mann Whitney U Test"],
-        key="group_difference_test"
-    )
+                distribution = "Same Distribution" if pvalue > 0.05 else "Different Distribution"
+                group_results.append({"Column": col, "Test Statistic": round(stat, 4), "P-Value": round(pvalue, 4), "Distribution": distribution})
 
-    if group_test_type:
-        from scipy.stats import ks_2samp, brunnermunzel, mannwhitneyu
-
-        # Initialize results list
-        group_results = []
-
-        # Perform the selected test on each continuous column
-        for col in continuous_cols:
-            attrition_yes = df[df['Attrition'] == 'Yes'][col]
-            attrition_no = df[df['Attrition'] == 'No'][col]
-
-            if group_test_type == "KS Test":
-                stat, pvalue = ks_2samp(attrition_yes, attrition_no)
-            elif group_test_type == "Brunner-Munzel Test":
-                stat, pvalue = brunnermunzel(attrition_yes, attrition_no)
-            elif group_test_type == "Mann Whitney U Test":
-                stat, pvalue = mannwhitneyu(attrition_yes, attrition_no, alternative='two-sided')
-
-            # Determine distribution similarity based on p-value
-            distribution = "Same Distribution" if pvalue > 0.05 else "Different Distribution"
-
-            # Append results
-            group_results.append({
-                "Column": col,
-                "Test Statistic": round(stat, 4),
-                "P-Value": round(pvalue, 4),
-                "Distribution": distribution
-            })
-
-        # Convert results to a DataFrame
-        group_results_df = pd.DataFrame(group_results)
-
-        # Display the results as a table
-        st.write("Results of the Group Difference Test:")
-        st.dataframe(group_results_df.style.hide(axis='index'))
+            group_results_df = pd.DataFrame(group_results)
+            st.write("Results of the Group Difference Test:")
+            st.dataframe(group_results_df.style.hide(axis='index'), use_container_width=True)
 
     # Box Plot Analysis
     st.subheader("Box Plot Analysis")
